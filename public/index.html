@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Ranking Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        body {
+            background-color: #f5f5f3;
+            color: #111111;
+        }
+
+        .skeleton { 
+            background: linear-gradient(90deg, #f0f0f0 25%, #fafafa 50%, #f0f0f0 75%); 
+            background-size: 200% 100%; 
+            animation: loading 1.5s infinite; 
+            height: 380px; 
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        @keyframes loading { 
+            to { background-position: -200% 0; } 
+        }
+
+        @keyframes zoomIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .animate-zoom-in {
+            animation: zoomIn 0.25s ease-out;
+        }
+        
+        .cursor-zoom-in {
+            cursor: zoom-in;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: #111111;
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #111111;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 8px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+<nav class="bg-white sticky top-0 z-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex flex-col md:flex-row justify-between py-3 md:h-16 items-center gap-3">
+            
+            <div class="flex items-center justify-between w-full md:w-auto">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
+                    <div class="flex items-center gap-2">
+                        <img src="TĐT_logo-removebg-preview.png" class="w-8 h-8 object-contain">
+                        <img src="khoa.png" class="w-8 h-8 object-contain">
+                        <img src="Huy_Hiệu_Đoàn.png" class="w-8 h-8 object-contain">
+                    </div>
+                    <span class="font-bold text-lg text-gray-900 tracking-tight">
+                        TDTU Voter
+                    </span>
+                </div>
+                
+                <div id="adminMenu" class="hidden md:block">
+                    <button onclick="scrollToAdmin()" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 transition-colors">
+                        Admin
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-center gap-3 w-full md:w-auto border-t md:border-0 pt-3 md:pt-0 border-gray-100">
+                <div id="adminMenuMobile" class="md:hidden hidden">
+                     <button onclick="scrollToAdmin()" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-200">
+                        Admin
+                    </button>
+                </div>
+                <div id="google_login_btn"></div>
+            </div>
+
+        </div>
+    </div>
+</nav>
+
+<main class="flex-grow">
+<div class="container mx-auto px-4 sm:px-6 py-12 max-w-7xl">
+    <!-- Upload Section -->
+    <div class="flex justify-center mb-16 animate-fade-in">
+        <div class="w-full md:w-2/3 lg:w-1/2 bg-white rounded-[16px] p-8 md:p-10 border border-gray-200">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2 tracking-tight">
+                    TDTU qua ống kính
+                </h2>
+                <p class="text-gray-500 text-sm font-medium">Chia sẻ khoảnh khắc đẹp của bạn về TDTU</p>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">MSSV của bạn</label>
+                <input type="text" 
+                    id="mssvInput" 
+                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition-all text-gray-900 font-medium" 
+                    placeholder="Nhập 8 ký tự MSSV" 
+                    maxlength="8" 
+                    oninput="this.value = this.value.replace(/[^0-9a-zA-Z]/g, '').slice(0, 8)">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">Chọn ảnh</label>
+                <input type="file" 
+                    id="fileInput" 
+                    accept="image/*"
+                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition-all text-gray-900
+                    file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-900 hover:file:bg-gray-300 cursor-pointer"
+                    onchange="previewImage(event)">
+            </div>
+
+            <div id="previewContainer" class="hidden mb-6">
+                <p class="text-sm text-gray-500 mb-2 font-semibold">Xem trước ảnh:</p>
+                <div class="relative w-full h-64 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                    <img id="imagePreview" src="#" alt="Preview" class="w-full h-full object-contain">
+                    <button onclick="removePreview()" class="absolute top-3 right-3 bg-white text-gray-900 p-2 rounded-full hover:bg-gray-100 shadow-sm transition-all border border-gray-200 flex items-center justify-center w-8 h-8">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="uploadBtn" onclick="uploadPhoto()" class="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors">
+                    Đăng ảnh ngay
+                </button>
+                <button id="updateBtn" onclick="updatePhoto()" class="flex-1 bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 font-semibold py-3.5 px-6 rounded-xl transition-colors">
+                    Thay đổi ảnh
+                </button>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div id="uploadProgress" class="hidden mt-4">
+                <div class="progress-container">
+                    <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                </div>
+                <p id="progressText" class="text-sm text-gray-500 mt-2 text-center font-medium">Đang tải lên... 0%</p>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t border-gray-100 space-y-2">
+                <p class="text-xs text-gray-500 flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-triangle-alert"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    Đăng nhập bằng email sinh viên trước khi thao tác
+                </p>
+                <p class="text-xs text-gray-500 flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-triangle-alert"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    Khi thay đổi ảnh, số vote sẽ được reset về 0
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="flex justify-center mb-10">
+        <div class="w-full md:w-2/3 lg:w-1/2">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-grow relative">
+                    <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </span>
+                    <input type="text" 
+                        id="searchInput" 
+                        class="w-full pl-12 pr-4 py-3.5 bg-gray-100 border border-transparent focus:bg-white rounded-xl focus:outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all text-gray-900" 
+                        placeholder="Tìm kiếm theo tên hoặc MSSV..." 
+                        oninput="debounceSearch()">
+                </div>
+                <div class="w-full sm:w-48 shrink-0">
+                    <select id="sortInput" 
+                        class="w-full px-4 py-3.5 bg-gray-100 border border-transparent focus:bg-white rounded-xl focus:outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all text-gray-900 font-semibold cursor-pointer appearance-none" 
+                        onchange="loadPhotos(true)">
+                        <option value="new">Mới nhất</option>
+                        <option value="top">Nhiều vote nhất</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden bg-white rounded-[16px] border border-gray-200 p-6 md:p-8 mb-16">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900 tracking-tight">Quản lý dự thi</h2>
+                <p class="text-gray-500 text-sm mt-1">Tổng hợp danh sách sinh viên và kết quả bình chọn</p>
+            </div>
+            <button onclick="exportToCSV()" class="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shrink-0">
+                Xuất dữ liệu CSV
+            </button>
+        </div>
+        <div class="table-container">
+            <table class="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider border-y border-gray-200">
+                        <th class="p-4 font-semibold">Họ Tên</th>
+                        <th class="p-4 font-semibold">MSSV</th>
+                        <th class="p-4 font-semibold text-center">Số Vote</th>
+                        <th class="p-4 font-semibold">Email</th>
+                        <th class="p-4 font-semibold">Thời gian</th>
+                    </tr>
+                </thead>
+                <tbody id="adminTableBody" class="divide-y divide-gray-100">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Gallery -->
+    <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"></div>
+    
+    <!-- Skeleton Loader -->
+    <div id="skeleton-loader" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" style="display: none;">
+        <div><div class="skeleton"></div></div>
+        <div><div class="skeleton"></div></div>
+        <div><div class="skeleton"></div></div>
+    </div>
+
+    <!-- Load More Button -->
+    <div id="loadMoreContainer" class="text-center mt-12">
+        <button id="btnLoadMore" 
+            class="px-8 py-3 bg-white text-gray-900 font-semibold rounded-xl hover:bg-gray-50 transition-colors border border-gray-200" 
+            onclick="loadMore()">
+            Xem thêm
+        </button>
+    </div>
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="bg-transparent border-t border-gray-200 py-8 mt-auto">
+    <div class="container mx-auto px-6 text-center">
+        <p class="text-gray-500 text-sm font-medium">Made by Đoàn Khoa CNTT</p>
+    </div>
+</footer>
+
+<!-- Image Modal for Zoom View -->
+<div id="imageModal" class="fixed inset-0 z-[100] hidden bg-[#111111]/95 flex items-center justify-center p-4 transition-opacity duration-300" onclick="closeModal()">
+    <button onclick="closeModal()" class="absolute top-6 right-6 text-white/70 hover:text-white p-2 transition-colors z-[101]">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+    <img id="modalImage" src="" class="max-w-full max-h-[90vh] rounded-md object-contain animate-zoom-in" alt="Enlarged Photo" onclick="event.stopPropagation()">
+</div>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script>
+    let page = 1;
+    let userToken = null;
+    let currentUserEmail = null;
+    let searchTimer;
+    let isLoading = false;
+    let hasMorePhotos = true;
+    let votedPhotoId = null; // Track which photo user voted for
+    let pollInterval = null; // For real-time updates
+
+    // PRIORITY 1.3: Load token from localStorage on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedToken = localStorage.getItem('userToken');
+        if (savedToken) {
+            try {
+                const payload = JSON.parse(atob(savedToken.split('.')[1]));
+                // Check if token is still valid (not expired)
+                if (payload.exp * 1000 > Date.now()) {
+                    userToken = savedToken;
+                    currentUserEmail = payload.email;
+                    document.getElementById('google_login_btn').innerHTML = `<span class="text-gray-900 font-semibold">👋 Chào bạn!</span>`;
+                    
+                    const ADMIN_EMAILS = ['523h0189@student.tdtu.edu.vn'];
+                    if (ADMIN_EMAILS.includes(currentUserEmail)) {
+                        document.getElementById('adminMenu').classList.remove('hidden');
+                        loadAdminDashboard();
+                    }
+                    
+                    loadMyVote(); // Load which photo user voted for
+                } else {
+                    localStorage.removeItem('userToken');
+                }
+            } catch (e) {
+                localStorage.removeItem('userToken');
+            }
+        }
+    });
+
+    function showToast(msg, type = "success") {
+        Toastify({ 
+            text: msg, 
+            duration: 3000, 
+            gravity: "top", 
+            position: "right", 
+            style: { 
+                background: type === "success" ? "#111111" : "#ef4444",
+                borderRadius: "10px",
+                fontWeight: "600",
+                color: "#ffffff",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+            } 
+        }).showToast();
+    }
+
+    function handleCredentialResponse(response) {
+        userToken = response.credential;
+        const payload = JSON.parse(atob(userToken.split('.')[1]));
+        const userEmail = payload.email;
+        currentUserEmail = userEmail;
+
+        // PRIORITY 1.3: Save token to localStorage
+        localStorage.setItem('userToken', userToken);
+
+        document.getElementById('google_login_btn').innerHTML = `<span class="text-gray-900 font-semibold">👋 Chào bạn!</span>`;
+        showToast("Đăng nhập thành công!");
+
+        const ADMIN_EMAILS = ['523h0189@student.tdtu.edu.vn'];
+        if (ADMIN_EMAILS.includes(userEmail)) {
+            document.getElementById('adminMenu').classList.remove('hidden');
+            loadAdminDashboard();
+        }
+        
+        loadMyVote(); // PRIORITY 1.2: Load which photo user voted for
+        startPolling(); // PRIORITY 2.1: Start real-time updates
+    }
+
+    // PRIORITY 1.2: Load which photo the user has voted for
+    async function loadMyVote() {
+        if (!userToken) return;
+        try {
+            const res = await fetch(`/api/my-vote?token=${userToken}`);
+            const data = await res.json();
+            votedPhotoId = data.photo_id;
+            loadPhotos(true); // Reload to highlight voted photo
+        } catch (e) {
+            console.error("Error loading vote status");
+        }
+    }
+
+    // PRIORITY 2.1: Real-time vote updates using polling
+    function startPolling() {
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(() => {
+            if (!isLoading) {
+                updateVoteCounts();
+            }
+        }, 5000); // Poll every 5 seconds
+    }
+
+    async function updateVoteCounts() {
+        try {
+            const search = document.getElementById('searchInput').value;
+            const sort = document.getElementById('sortInput').value;
+            const res = await fetch(`/api/photos?page=1&search=${search}&sort=${sort}`);
+            const photos = await res.json();
+            
+            photos.forEach(photo => {
+                const voteElement = document.getElementById(`votes-${photo.id}`);
+                if (voteElement) {
+                    voteElement.textContent = photo.votes;
+                }
+            });
+        } catch (e) {
+            console.error("Polling error");
+        }
+    }
+
+    window.onload = () => {
+        google.accounts.id.initialize({ 
+            client_id: "577134936393-1s61e1kps20p3gbg0vm8cio89rvoo750.apps.googleusercontent.com", 
+            callback: handleCredentialResponse 
+        });
+        google.accounts.id.renderButton(document.getElementById("google_login_btn"), { 
+            theme: "outline", 
+            size: "large",
+            shape: "pill"
+        });
+
+        // CHỨC NĂNG 2: Kích hoạt Infinite Scroll
+        setupInfiniteScroll();
+    };
+
+    // CHỨC NĂNG 2: Infinite Scroll Implementation
+    function setupInfiniteScroll() {
+        window.addEventListener('scroll', () => {
+            if (isLoading || !hasMorePhotos) return;
+
+            const scrollTop = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+
+            // Khi cuộn đến 80% chiều cao trang
+            if (scrollTop + windowHeight >= documentHeight * 0.8) {
+                loadMore();
+            }
+        });
+    }
+
+    async function loadPhotos(reset = false) {
+        if (isLoading) return;
+        
+        if (reset) { 
+            page = 1; 
+            hasMorePhotos = true;
+            document.getElementById('gallery').innerHTML = ''; 
+        }
+        
+        isLoading = true;
+        const loader = document.getElementById('skeleton-loader');
+        const btnMore = document.getElementById('btnLoadMore');
+        const search = document.getElementById('searchInput').value;
+        const sort = document.getElementById('sortInput').value;
+
+        loader.style.display = 'grid';
+        btnMore.style.display = 'none';
+
+        try {
+            const res = await fetch(`/api/photos?page=${page}&search=${search}&sort=${sort}`);
+            
+            // KIỂM TRA LỖI SERVER (Nên thêm)
+            if (!res.ok) throw new Error("Không thể kết nối đến server");
+
+            const photos = await res.json();
+            loader.style.display = 'none';
+
+            // Xử lý khi không có ảnh nào
+            if (photos.length === 0 && page === 1) {
+                document.getElementById('gallery').innerHTML = `
+                    <div class="col-span-full text-center py-20">
+                        <p class="text-gray-500 text-lg font-medium">Chưa có ảnh dự thi nào. Hãy là người đầu tiên! 📸</p>
+                    </div>`;
+                hasMorePhotos = false;
+                btnMore.style.display = 'none';
+                isLoading = false;
+                return; 
+            }
+
+            const gallery = document.getElementById('gallery');
+            
+            // Logic phân trang
+            if (photos.length < 6) {
+                hasMorePhotos = false;
+                btnMore.style.display = 'none';
+            } else {
+                btnMore.style.display = 'inline-block';
+            }
+
+            photos.forEach(p => {
+                // Logic so sánh votedPhotoId (Đảm bảo so sánh cùng kiểu dữ liệu)
+                const isVoted = votedPhotoId == p.id; 
+                const votedClass = isVoted ? 'border-gray-900 ring-1 ring-gray-900 shadow-sm' : 'border-gray-200';
+                const votedBadge = isVoted ? '<div class="absolute top-3 right-3 bg-gray-900 text-white px-3 py-1 rounded-full text-[11px] font-bold z-10 shadow-sm uppercase tracking-wide">✓ Đã vote</div>' : '';
+                
+                // Format thời gian chuẩn Việt Nam
+                const timestamp = p.created_at ? new Date(p.created_at).toLocaleString('vi-VN', { 
+                    timeZone: 'Asia/Ho_Chi_Minh',
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : '';
+                
+                const card = `
+                <div id="card-${p.id}" class="animate-fade-in mb-2 group">
+                    <div class="bg-white rounded-[16px] overflow-hidden border ${votedClass} relative transition-all duration-300 hover:-translate-y-1 hover:shadow-md flex flex-col h-full">
+                        ${votedBadge}
+                        
+                        <div class="relative w-full aspect-[4/3] sm:aspect-[4/5] overflow-hidden bg-gray-100 shrink-0">
+                            <img src="${p.url}" class="w-full h-full object-cover cursor-zoom-in transition-transform duration-700 group-hover:scale-[1.03]" alt="Photo" onclick="openModal('${p.url}')">
+                        </div>
+
+                        <div class="p-5 flex flex-col flex-grow">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[11px] font-bold text-gray-400 tracking-wider uppercase">${timestamp}</span>
+                            </div>
+                            
+                            <h3 class="font-bold text-gray-900 text-lg mb-1 line-clamp-1">
+                                ${p.uploader_name}
+                            </h3>
+                            
+                            <p class="text-sm text-gray-500 mb-5 font-medium flex-grow">MSSV: ${p.mssv}</p>
+                            
+                            <div class="flex items-center justify-between pt-4 border-t border-gray-100 shrink-0">
+                                <div class="flex items-center gap-2">
+                                    <span id="votes-${p.id}" class="text-xl font-bold text-gray-900">${p.votes}</span>
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Votes</span>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <button onclick="vote(${p.id})" 
+                                        class="${isVoted ? 'bg-gray-100 text-gray-500 border border-gray-200' : 'bg-gray-900 text-white hover:bg-gray-800'} font-semibold py-2 px-4 rounded-xl text-sm transition-colors active:scale-95">
+                                        ${isVoted ? 'Đã Vote' : 'Vote'}
+                                    </button>
+                                    <button onclick="deletePhoto(${p.id})" 
+                                        class="bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-200 hover:border-red-100 p-2 rounded-xl transition-colors active:scale-95 flex items-center justify-center" title="Xóa ảnh">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                gallery.insertAdjacentHTML('beforeend', card);
+            });
+        } catch (e) { 
+            console.error(e);
+            showToast("Lỗi tải ảnh. Vui lòng kiểm tra kết nối!", "error"); 
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    function debounceSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => loadPhotos(true), 500);
+    }
+
+    // CHỨC NĂNG 4: Vote với khả năng thay đổi + PRIORITY 2.4: Confirm
+    async function vote(id) {
+        if (!userToken) return showToast("Vui lòng đăng nhập Google!", "error");
+        
+        // Nếu đang vote ảnh khác, hỏi xác nhận đổi vote (giữ nguyên logic cũ nếu muốn)
+        if (votedPhotoId && votedPhotoId !== id) {
+            if (!confirm("Bạn muốn đổi vote sang ảnh này? Vote cũ sẽ bị hủy.")) {
+                return;
+            }
+        }
+        
+        try {
+            const res = await fetch(`/api/vote/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: userToken })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                if (data.action === 'unvoted') {
+                    votedPhotoId = null; // Xóa trạng thái đã vote
+                    showToast("Đã hủy bình chọn.");
+                } else {
+                    votedPhotoId = id; // Cập nhật ảnh đã vote mới
+                    showToast("Đã bình chọn thành công! 🎉");
+                }
+                
+                // Load lại để cập nhật giao diện (viền đỏ, badge, số vote)
+                loadPhotos(true); 
+            } else { 
+                if (res.ok) {
+                    if (data.action === 'unvoted') {
+                        votedPhotoId = null;
+                        showToast("Đã hủy bình chọn.");
+                    } else {
+                        votedPhotoId = id;
+                        showToast("Đã bình chọn thành công! 🎉");
+                    }
+                    loadPhotos(true); 
+                } else if (res.status === 429) {
+                    // Xử lý riêng lỗi nhấn quá nhanh (Rate Limit)
+                    showToast("Thao tác quá nhanh! Vui lòng đợi 30 giây.", "error");
+                } else { 
+                    showToast(data.message || "Lỗi bình chọn!", "error"); 
+                } 
+            }
+        } catch (e) {
+            showToast("Lỗi kết nối server", "error");
+        }
+    }
+
+    // PRIORITY 1.4: Optimize and resize image before upload
+    function resizeImage(file, maxWidth = 1920, maxHeight = 1080, quality = 0.8) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate new dimensions
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = height * (maxWidth / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = width * (maxHeight / height);
+                            height = maxHeight;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        }));
+                    }, 'image/jpeg', quality);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // PRIORITY 1.1: Upload with progress bar
+    async function uploadPhoto() {
+        const mssv = document.getElementById('mssvInput').value.trim();
+        const file = document.getElementById('fileInput').files[0];
+
+        if (!userToken ) return showToast("Chưa đăng nhập!", "error");
+        if (!mssv) return showToast("Thiếu mssv!", "error");
+        if (mssv.length !== 8) {
+            return showToast("MSSV phải có đúng 8 ký tự!", "error");
+        }
+        if (!file) return showToast("Thiếu ảnh!", "error");
+        
+        // Show progress bar
+        const progressContainer = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const updateBtn = document.getElementById('updateBtn');
+        
+        progressContainer.classList.remove('hidden');
+        uploadBtn.disabled = true;
+        updateBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner"></span> Đang tải...';
+        
+        try {
+            // PRIORITY 1.4: Optimize image before upload
+            progressText.textContent = 'Đang tối ưu ảnh...';
+            const optimizedFile = await resizeImage(file);
+            
+            progressBar.style.width = '30%';
+            progressText.textContent = 'Đang tải lên... 30%';
+            
+            const formData = new FormData();
+            formData.append('photo', optimizedFile);
+            formData.append('token', userToken);
+            formData.append('mssv', mssv);
+
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = `Đang tải lên... ${percent}%`;
+                }
+            });
+            
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    const data = JSON.parse(xhr.responseText);
+                    progressBar.style.width = '100%';
+                    progressText.textContent = 'Hoàn thành! 100%';
+                    showToast("Đăng thành công! 🎉"); 
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const data = JSON.parse(xhr.responseText);
+                    showToast(data.message, "error");
+                    resetUploadUI();
+                }
+            });
+            
+            xhr.addEventListener('error', () => {
+                showToast("Lỗi đăng ảnh", "error");
+                resetUploadUI();
+            });
+            
+            xhr.open('POST', '/api/upload');
+            xhr.send(formData);
+            
+        } catch (e) { 
+            showToast("Lỗi đăng ảnh", "error"); 
+            resetUploadUI();
+        }
+    }
+    
+    function resetUploadUI() {
+        const progressContainer = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const updateBtn = document.getElementById('updateBtn');
+        
+        progressContainer.classList.add('hidden');
+        progressBar.style.width = '0%';
+        uploadBtn.disabled = false;
+        updateBtn.disabled = false;
+        uploadBtn.innerHTML = 'Đăng ảnh ngay';
+    }
+
+    // CHỨC NĂNG 3: Cập nhật ảnh với progress bar
+    async function updatePhoto() {
+        const mssv = document.getElementById('mssvInput').value.trim();
+        const file = document.getElementById('fileInput').files[0];
+        
+        if (mssv.length !== 8) {
+            return showToast("MSSV phải có đúng 8 ký tự!", "error");
+        }
+        if (!userToken || !mssv || !file) {
+            return showToast("Thiếu thông tin cập nhật ảnh!", "error");
+        }
+
+        if (!confirm("Bạn chắc chắn muốn thay đổi ảnh? Số vote sẽ reset về 0!")) {
+            return;
+        }
+
+        const progressContainer = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const updateBtn = document.getElementById('updateBtn');
+        
+        progressContainer.classList.remove('hidden');
+        uploadBtn.disabled = true;
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<span class="spinner"></span> Đang cập nhật...';
+
+        try {
+            progressText.textContent = 'Đang tối ưu ảnh...';
+            const optimizedFile = await resizeImage(file);
+            
+            const formData = new FormData();
+            formData.append('photo', optimizedFile);
+            formData.append('token', userToken);
+            formData.append('mssv', mssv);
+
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = `Đang cập nhật... ${percent}%`;
+                }
+            });
+            
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    progressBar.style.width = '100%';
+                    progressText.textContent = 'Hoàn thành! 100%';
+                    showToast("Cập nhật ảnh thành công! Votes đã reset! 🔄"); 
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const data = JSON.parse(xhr.responseText);
+                    showToast(data.message, "error");
+                    resetUploadUI();
+                }
+            });
+            
+            xhr.addEventListener('error', () => {
+                showToast("Lỗi cập nhật ảnh", "error");
+                resetUploadUI();
+            });
+            
+            xhr.open('PUT', '/api/update-photo');
+            xhr.send(formData);
+            
+        } catch (e) { 
+            showToast("Lỗi cập nhật ảnh", "error");
+            resetUploadUI();
+        }
+    }
+
+    async function deletePhoto(id) {
+        if (!userToken) return showToast("Vui lòng đăng nhập để thực hiện!", "error");
+        
+        // Hỏi xác nhận trước khi xóa
+        if (!confirm("Bạn có chắc chắn muốn xóa ảnh này? Thao tác này không thể hoàn tác!")) return;
+
+        try {
+            const res = await fetch(`/api/photos/${id}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                // Gửi kèm token để server kiểm tra xem bạn là Admin hay chủ ảnh
+                body: JSON.stringify({ token: userToken }) 
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                showToast(data.message || "Đã xóa ảnh thành công!");
+                // Xóa card ảnh khỏi giao diện ngay lập tức mà không cần load lại trang
+                const card = document.getElementById(`card-${id}`);
+                if (card) card.remove();
+            } else {
+                showToast(data.message, "error");
+            }
+        } catch (e) {
+            showToast("Lỗi kết nối khi xóa!", "error");
+        }
+    }
+
+    function loadMore() { 
+        if (!isLoading && hasMorePhotos) {
+            page++; 
+            loadPhotos(); 
+        }
+    }
+    
+    async function loadAdminDashboard() {
+        try {
+            const res = await fetch(`/api/admin/summary?token=${userToken}`);
+            const data = await res.json();
+            
+            if (res.ok) {
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                const tbody = document.getElementById('adminTableBody');
+                tbody.innerHTML = data.map(s => {
+                    const timestamp = s.created_at ? new Date(s.created_at).toLocaleString('vi-VN', { 
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                        hour12: false
+                    }) : '';
+                    
+                    return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-4 border-b border-gray-100 font-semibold text-gray-900">${s.uploader_name}</td>
+                        <td class="p-4 border-b border-gray-100 text-gray-600">${s.mssv}</td>
+                        <td class="p-4 border-b border-gray-100 text-center font-bold text-gray-900">${s.votes}</td>
+                        <td class="p-4 border-b border-gray-100 text-sm text-gray-500">${s.uploader_email}</td>
+                        <td class="p-4 border-b border-gray-100 text-sm text-gray-500">${timestamp}</td>
+                    </tr>
+                    `;
+                }).join('');
+            }
+        } catch (e) {
+            console.error("Không thể tải dashboard admin");
+        }
+    }
+
+    function exportToCSV() {
+        if (!userToken) return showToast("Vui lòng đăng nhập Admin!", "error");
+        
+        // Gọi trực tiếp API từ Server để tải file về
+        const exportUrl = `/api/admin/export?token=${userToken}`;
+        
+        // Tạo một thẻ <a> ẩn để kích hoạt tải file
+        const link = document.createElement("a");
+        link.href = exportUrl;
+        link.setAttribute("download", "ds_binh_chon_tdtu.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast("Đang chuẩn bị file tải về...");
+    }
+
+    function scrollToAdmin() {
+        const dashboard = document.getElementById('adminDashboard');
+        dashboard.classList.remove('hidden');
+        dashboard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // CHỨC NĂNG MỚI: Xem trước ảnh trước khi đăng
+    function previewImage(event) {
+        const file = event.target.files[0];
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImg = document.getElementById('imagePreview');
+
+        if (file) {
+            // Kiểm tra định dạng file
+            if (!file.type.startsWith('image/')) {
+                showToast("Vui lòng chọn file ảnh!", "error");
+                event.target.value = ""; // Reset input
+                return;
+            }
+
+            // Kiểm tra kích thước file (giới hạn 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showToast("Ảnh quá lớn! Vui lòng chọn ảnh dưới 10MB", "error");
+                event.target.value = "";
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewContainer.classList.remove('hidden'); // Hiển thị khung xem trước
+            }
+            
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function removePreview() {
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImg = document.getElementById('imagePreview');
+
+        fileInput.value = ""; // Xóa file trong input
+        previewImg.src = "#";
+        previewContainer.classList.add('hidden'); // Ẩn khung xem trước
+        showToast("Đã xóa ảnh preview", "success");
+    }
+
+    // Modal Functions for Image Zoom
+    function openModal(src) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        modalImg.src = src;
+        modal.classList.remove('hidden');
+        // Chặn cuộn trang khi đang xem ảnh
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.add('hidden');
+        // Cho phép cuộn trang lại
+        document.body.style.overflow = 'auto';
+    }
+
+    // Đóng modal khi nhấn phím ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+    
+    loadPhotos();
+</script>
+</body>
+</html>
