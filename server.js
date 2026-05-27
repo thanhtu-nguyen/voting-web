@@ -92,7 +92,7 @@ app.get('/api/photos', async (req, res) => {
         );
         res.json(result.rows);
     } catch (error) {
-        console.error(error);
+        console.error("Lỗi lấy dữ liệu ảnh:", error);
         res.status(500).json({ message: "Lỗi lấy dữ liệu" });
     }
 });
@@ -143,7 +143,8 @@ app.post('/api/upload', upload.single('photo'), async (req, res) => {
         );
         res.json({ success: true });
     } catch (error) {
-        res.status(401).json({ message: "Lỗi xác thực!" });
+        console.error("Lỗi khi upload ảnh:", error);
+        res.status(401).json({ message: "Lỗi xác thực hoặc hệ thống!" });
     }
 });
 
@@ -167,6 +168,7 @@ app.put('/api/update-photo', upload.single('photo'), async (req, res) => {
 
         res.json({ success: true });
     } catch (error) {
+        console.error("Lỗi khi cập nhật ảnh:", error);
         res.status(401).json({ message: "Lỗi hệ thống!" });
     }
 });
@@ -253,6 +255,7 @@ app.post('/api/vote/:id', voteLimiter, async (req, res) => {
         await pool.query('UPDATE photos SET votes = votes + 1 WHERE id = $1', [newPhotoId]);
         res.json({ success: true, action: 'voted' });
     } catch (error) {
+        console.error("Lỗi khi bình chọn:", error);
         res.status(400).json({ message: "Lỗi bình chọn!" });
     }
 });
@@ -306,6 +309,7 @@ app.delete('/api/photos/:id', async (req, res) => {
 
         res.json({ success: true, message: "Đã xóa ảnh thành công!" });
     } catch (error) {
+        console.error("Lỗi khi xóa ảnh:", error);
         res.status(401).json({ message: "Lỗi xác thực hoặc hệ thống!" });
     }
 });
