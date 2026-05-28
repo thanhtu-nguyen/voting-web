@@ -108,15 +108,14 @@
                 <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
                     <div class="flex items-center gap-2">
                         <img src="TĐT_logo-removebg-preview.png" class="w-8 h-8 object-contain">
-                        <img src="khoa.png" class="w-8 h-8 object-contain">
-                        <img src="Huy_Hiệu_Đoàn.png" class="w-8 h-8 object-contain">
+                        <img src="icon.png" class="w-8 h-8 object-contain">
                     </div>
                     <span class="font-bold text-lg text-gray-900 tracking-tight">
-                        TDTU Voter
+                        Voting
                     </span>
                 </div>
                 
-                <div id="adminMenu" class="hidden md:block">
+                <div id="adminMenu" class="hidden md:block" style="display: none;">
                     <button onclick="scrollToAdmin()" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 transition-colors">
                         Admin
                     </button>
@@ -124,7 +123,7 @@
             </div>
             
             <div class="flex items-center justify-center gap-3 w-full md:w-auto border-t md:border-0 pt-3 md:pt-0 border-gray-100">
-                <div id="adminMenuMobile" class="md:hidden hidden">
+                <div id="adminMenuMobile" class="block md:hidden" style="display: none;">
                      <button onclick="scrollToAdmin()" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-200">
                         Admin
                     </button>
@@ -323,7 +322,8 @@
                     
                     const ADMIN_EMAILS = ['523h0189@student.tdtu.edu.vn'];
                     if (ADMIN_EMAILS.includes(currentUserEmail)) {
-                        document.getElementById('adminMenu').classList.remove('hidden');
+                        document.getElementById('adminMenu').style.display = '';
+                        document.getElementById('adminMenuMobile').style.display = '';
                         loadAdminDashboard();
                     }
                     
@@ -367,7 +367,8 @@
 
         const ADMIN_EMAILS = ['523h0189@student.tdtu.edu.vn'];
         if (ADMIN_EMAILS.includes(userEmail)) {
-            document.getElementById('adminMenu').classList.remove('hidden');
+            document.getElementById('adminMenu').style.display = '';
+            document.getElementById('adminMenuMobile').style.display = '';
             loadAdminDashboard();
         }
         
