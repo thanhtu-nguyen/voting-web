@@ -320,6 +320,22 @@ app.post('/api/vote/:id', voteLimiter, async (req, res) => {
     }
 });
 
+// ─── API: Kiểm tra quyền Admin (PUBLIC – dùng token Google) ─────────
+// Client gọi API này sau khi đăng nhập để biết mình có phải admin không,
+// thay vì client tự giữ danh sách email admin (vốn sẽ lộ công khai trong HTML).
+app.get('/api/check-admin', async (req, res) => {
+    const token = req.query.token;
+    if (!token) return res.json({ isAdmin: false });
+    try {
+        const ticket = await googleClient.verifyIdToken({ idToken: token, audience: GOOGLE_CLIENT_ID });
+        const email = ticket.getPayload().email;
+        res.json({ isAdmin: ADMIN_EMAILS.includes(email) });
+    } catch (error) {
+        console.error('[Check-Admin] verifyIdToken THẤT BẠI:', error.message);
+        res.json({ isAdmin: false });
+    }
+});
+
 // ─── API: Admin Summary ──────────────────────────────────────────────
 app.get('/api/admin/summary', async (req, res) => {
     const token = req.query.token;
