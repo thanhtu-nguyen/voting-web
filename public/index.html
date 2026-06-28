@@ -411,7 +411,7 @@
         adminToken = token;
 
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const ADMIN_LIST = ['523h0189@student.tdtu.edu.vn'];
+        const ADMIN_LIST = ['tunguyenvo878@gmail.com'];
 
         document.getElementById('google_login_btn').style.display = 'none';
         document.getElementById('user_display_name').textContent = payload.name || payload.email;
@@ -452,7 +452,7 @@
                     document.getElementById('user_profile_container').style.display = 'flex';
                     document.getElementById('adminLoginHint').classList.add('hidden');
 
-                    const ADMIN_LIST = ['523h0189@student.tdtu.edu.vn'];
+                    const ADMIN_LIST = ['tunguyenvo878@gmail.com'];
                     if (ADMIN_LIST.includes(payload.email)) {
                         isAdmin = true;
                         document.getElementById('adminBtn').style.display = '';
