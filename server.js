@@ -9,8 +9,15 @@ const ExcelJS = require('exceljs');
 
 const app = express();
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID.replace(/['";\\s]/g, '');
+if (!process.env.GOOGLE_CLIENT_ID) {
+    console.error("❌ FATAL: Biến môi trường GOOGLE_CLIENT_ID chưa được set! Vào phần Environment Variables trên Render/Railway và thêm GOOGLE_CLIENT_ID giống với client_id dùng ở index.html.");
+}
+// Loại bỏ dấu nháy / khoảng trắng dư khi copy-paste vào .env
+const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').replace(/['"\s]/g, '');
+console.log("[Config] GOOGLE_CLIENT_ID đang dùng:", GOOGLE_CLIENT_ID || "(RỖNG - CHƯA SET!)");
+
 const ADMIN_EMAILS = JSON.parse(process.env.ADMIN_EMAILS || "[]");
+console.log("[Config] ADMIN_EMAILS đang dùng:", ADMIN_EMAILS);
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -142,6 +149,7 @@ app.get('/api/my-vote', async (req, res) => {
         );
         res.json({ photo_id: result.rows.length > 0 ? result.rows[0].photo_id : null });
     } catch (error) {
+        console.error('[My-Vote] verifyIdToken THẤT BẠI:', error.message, '| GOOGLE_CLIENT_ID server:', GOOGLE_CLIENT_ID);
         res.status(401).json({ message: "Phiên đăng nhập hết hạn!" });
     }
 });
@@ -265,7 +273,7 @@ app.get('/api/admin/export', async (req, res) => {
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
-        console.error("Export error:", error);
+        console.error("Export error:", error.message, '| GOOGLE_CLIENT_ID server:', GOOGLE_CLIENT_ID);
         res.status(500).json({ message: "Lỗi hệ thống khi xuất file!" });
     }
 });

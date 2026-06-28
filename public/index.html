@@ -492,12 +492,28 @@
                 const data = await res.json();
                 votedPhotoId = data.photo_id;
             } else if (res.status === 401) {
-                logout();
-                return;
+                // Chỉ logout nếu token THẬT SỰ đã hết hạn (kiểm tra ở client).
+                // Nếu token còn hạn nhưng server vẫn trả 401, đó là lỗi cấu hình
+                // server (vd: GOOGLE_CLIENT_ID không khớp) -- không nên đăng xuất người dùng.
+                const stillValid = isTokenStillValid(token);
+                console.error('[My-Vote] Server trả 401. Token còn hạn ở client:', stillValid, '-- nếu true, kiểm tra GOOGLE_CLIENT_ID trên server!');
+                if (!stillValid) {
+                    logout();
+                    return;
+                }
             }
             loadPhotos(true);
         } catch {
             loadPhotos(true);
+        }
+    }
+
+    function isTokenStillValid(token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.exp * 1000 > Date.now();
+        } catch {
+            return false;
         }
     }
 
@@ -820,11 +836,17 @@
                 const errText = await res.text();
                 console.error('[Admin] API lỗi:', res.status, errText);
                 if (res.status === 401) {
-                    showToast('Phiên đăng nhập hết hạn! Vui lòng đăng nhập lại.', 'error');
-                    setTimeout(() => {
-                        localStorage.removeItem('googleToken');
-                        location.reload();
-                    }, 2000);
+                    const stillValid = isTokenStillValid(adminToken);
+                    console.error('[Admin] Server trả 401. Token còn hạn ở client:', stillValid, '-- nếu true, kiểm tra GOOGLE_CLIENT_ID trên server!');
+                    if (stillValid) {
+                        showToast('Lỗi xác thực phía server (cấu hình GOOGLE_CLIENT_ID). Vui lòng báo admin kỹ thuật!', 'error');
+                    } else {
+                        showToast('Phiên đăng nhập hết hạn! Vui lòng đăng nhập lại.', 'error');
+                        setTimeout(() => {
+                            localStorage.removeItem('googleToken');
+                            location.reload();
+                        }, 2000);
+                    }
                 } else if (res.status === 403) {
                     showToast('Tài khoản này không có quyền Admin!', 'error');
                 } else {
