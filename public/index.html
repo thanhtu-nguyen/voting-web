@@ -413,6 +413,8 @@
         const payload = JSON.parse(atob(token.split('.')[1]));
         const ADMIN_LIST = ['tunguyenvo878@gmail.com'];
 
+        console.log('[Auth] Email đăng nhập:', payload.email);
+
         document.getElementById('google_login_btn').style.display = 'none';
         document.getElementById('user_display_name').textContent = payload.name || payload.email;
         document.getElementById('user_profile_container').style.display = 'flex';
@@ -421,8 +423,10 @@
         if (ADMIN_LIST.includes(payload.email)) {
             isAdmin = true;
             document.getElementById('adminBtn').style.display = '';
+            // Hiện dashboard ngay, rồi load dữ liệu sau
+            document.getElementById('adminDashboard').classList.remove('hidden');
             loadAdminDashboard();
-            showToast('Đăng nhập Admin thành công!');
+            showToast('Đăng nhập Admin thành công! 🛡️');
         } else {
             isAdmin = false;
             document.getElementById('adminBtn').style.display = 'none';
@@ -812,26 +816,36 @@
     async function loadAdminDashboard() {
         try {
             const res  = await fetch(`/api/admin/summary?token=${adminToken}`);
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error('[Admin] API lỗi:', res.status, errText);
+                showToast(`Lỗi tải dữ liệu admin (${res.status}). Thử F5 lại!`, 'error');
+                return;
+            }
             const data = await res.json();
-            if (!res.ok) return;
             document.getElementById('adminDashboard').classList.remove('hidden');
-            document.getElementById('adminTableBody').innerHTML = data.map(s => {
-                const ts = s.created_at ? new Date(s.created_at).toLocaleString('vi-VN', {
-                    day:'2-digit', month:'2-digit', year:'numeric',
-                    hour:'2-digit', minute:'2-digit', hour12: false
-                }) : '';
-                return `<tr class="hover:bg-gray-50 transition-colors">
-                    <td class="p-3 border-b border-gray-100 font-semibold text-gray-900 text-sm">${escapeHtml(s.uploader_name)}</td>
-                    <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.birth_year||'')}</td>
-                    <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.school||'')}</td>
-                    <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.relative_name||'')}</td>
-                    <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.relative_phone||'')}</td>
-                    <td class="p-3 border-b border-gray-100 text-center font-bold text-gray-900">${s.votes}</td>
-                    <td class="p-3 border-b border-gray-100 text-xs text-gray-400">${ts}</td>
-                </tr>`;
-            }).join('');
+            document.getElementById('adminTableBody').innerHTML = data.length === 0
+                ? `<tr><td colspan="7" class="p-6 text-center text-gray-400 text-sm">Chưa có người tham gia nào.</td></tr>`
+                : data.map((s, i) => {
+                    const ts = s.created_at ? new Date(s.created_at).toLocaleString('vi-VN', {
+                        day:'2-digit', month:'2-digit', year:'numeric',
+                        hour:'2-digit', minute:'2-digit', hour12: false
+                    }) : '';
+                    return `<tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-3 border-b border-gray-100 font-semibold text-gray-900 text-sm">${escapeHtml(s.uploader_name)}</td>
+                        <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.birth_year||'')}</td>
+                        <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.school||'')}</td>
+                        <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.relative_name||'')}</td>
+                        <td class="p-3 border-b border-gray-100 text-gray-600 text-sm">${escapeHtml(s.relative_phone||'')}</td>
+                        <td class="p-3 border-b border-gray-100 text-center font-bold text-gray-900">${s.votes}</td>
+                        <td class="p-3 border-b border-gray-100 text-xs text-gray-400">${ts}</td>
+                    </tr>`;
+                }).join('');
             startPolling();
-        } catch { console.error('Dashboard error'); }
+        } catch(err) {
+            console.error('[Admin] Dashboard error:', err);
+            showToast('Không thể tải dữ liệu admin. Kiểm tra console!', 'error');
+        }
     }
 
     function exportToExcel() {
