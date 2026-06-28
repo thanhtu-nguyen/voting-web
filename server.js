@@ -317,12 +317,18 @@ app.get('/api/admin/summary', async (req, res) => {
     const token = req.query.token;
     try {
         const ticket = await googleClient.verifyIdToken({ idToken: token, audience: GOOGLE_CLIENT_ID });
-        if (!ADMIN_EMAILS.includes(ticket.getPayload().email)) return res.status(403).send("Forbidden");
+        const email = ticket.getPayload().email;
+        console.log('[Admin Summary] Email verify OK:', email);
+        if (!ADMIN_EMAILS.includes(email)) {
+            console.log('[Admin Summary] Email không trong ADMIN_EMAILS:', email, '| ADMIN_EMAILS:', ADMIN_EMAILS);
+            return res.status(403).send("Forbidden");
+        }
         const result = await pool.query(
             'SELECT uploader_name, birth_year, school, relative_name, relative_phone, votes, caption, created_at FROM photos ORDER BY votes DESC'
         );
         res.json(result.rows);
-    } catch {
+    } catch (err) {
+        console.error('[Admin Summary] verifyIdToken THẤT BẠI:', err.message);
         res.status(401).send("Unauthorized");
     }
 });
