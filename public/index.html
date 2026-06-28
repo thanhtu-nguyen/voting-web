@@ -58,7 +58,7 @@
         .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
         .table-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 8px; }
 
-        .caption-text { font-size: 0.78rem; color: #6b7280; line-height: 1.55; font-style: italic; }
+        .caption-text { font-size: 0.78rem; color: #6b7280; line-height: 1.55; }
         .caption-toggle-btn {
             font-size: 0.72rem; color: #111; font-weight: 700;
             cursor: pointer; text-decoration: underline;
@@ -561,10 +561,10 @@
         const MAX  = 175;
         const text = caption.trim();
         if (text.length <= MAX)
-            return `<div class="mb-3"><p class="caption-text">"${escapeHtml(text)}"</p></div>`;
+            return `<div class="mb-3"><p class="caption-text">${escapeHtml(text)}</p></div>`;
         return `<div class="mb-3">
             <p class="caption-text" id="caption-${photoId}">
-                "<span class="cp-${photoId}">${escapeHtml(text.slice(0, MAX))}...</span><span class="cf-${photoId} hidden">${escapeHtml(text)}</span>"
+                <span class="cp-${photoId}">${escapeHtml(text.slice(0, MAX))}...</span><span class="cf-${photoId} hidden">${escapeHtml(text)}</span>
                 <button class="caption-toggle-btn" data-id="${photoId}" data-exp="0"
                     onclick="toggleCaption(this)">Xem thêm</button>
             </p>
