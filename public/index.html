@@ -819,7 +819,17 @@
             if (!res.ok) {
                 const errText = await res.text();
                 console.error('[Admin] API lỗi:', res.status, errText);
-                showToast(`Lỗi tải dữ liệu admin (${res.status}). Thử F5 lại!`, 'error');
+                if (res.status === 401) {
+                    showToast('Phiên đăng nhập hết hạn! Vui lòng đăng nhập lại.', 'error');
+                    setTimeout(() => {
+                        localStorage.removeItem('googleToken');
+                        location.reload();
+                    }, 2000);
+                } else if (res.status === 403) {
+                    showToast('Tài khoản này không có quyền Admin!', 'error');
+                } else {
+                    showToast(`Lỗi tải dữ liệu admin (${res.status}). Thử F5 lại!`, 'error');
+                }
                 return;
             }
             const data = await res.json();
